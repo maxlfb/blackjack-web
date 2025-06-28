@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Multijoueur</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <h1>Blackjack entre Amis</h1>
+
+        <div id="login-area">
+            <input type="text" id="room-code-input" placeholder="Code de la salle" maxlength="10">
+            <button id="join-room-btn">Rejoindre / Créer</button>
+        </div>
+
+        <div id="game-area" class="hidden">
+            <h2>Salle : <span id="room-code-display"></span></h2>
+            
+            <div id="dealer-area">
+                <h3>Croupier</h3>
+                <div id="dealer-hand" class="hand"></div> 
+                <p>Score: <span id="dealer-score"></span></p> 
+            </div>
+
+            <div id="players-area">
+                </div>
+
+            <div class="player-hand-area" id="my-area">
+                <h3>Ma main (<span id="my-score">0</span>)</h3>
+                <div id="my-hand" class="hand"></div>
+            </div>
+
+            <div id="actions-area">
+                <button id="hit-btn">Tirer</button>
+                <button id="stand-btn">Rester</button>
+                <button id="restart-btn" class="hidden">Relancer la partie</button>
+            </div>
+             <p id="game-status"></p>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# Ignorer les dépendances locales et les logs
+node_modules
+server/node_modules
+npm-debug.log

@@ -1,0 +1,86 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #0a3d20;
+    color: white;
+    text-align: center;
+    padding-top: 20px;
+}
+
+#game-container {
+    max-width: 800px;
+    margin: auto;
+}
+
+#login-area input {
+    padding: 10px;
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+#login-area button,
+#actions-area button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #f0c040;
+    border: 2px solid #b08020;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+#actions-area button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+#game-area {
+    margin-top: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+.hand {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    min-height: 100px;
+    margin: 10px 0;
+}
+
+.card {
+    background-color: white;
+    color: black;
+    width: 70px;
+    height: 100px;
+    border: 1px solid black;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.card.suit-♥, .card.suit-♦ {
+    color: red;
+}
+
+.card-back {
+    background-color: #b02020;
+    background-image: repeating-linear-gradient(
+        45deg,
+        #c03030,
+        #c03030 10px,
+        #b02020 10px,
+        #b02020 20px
+    );
+}
+
+#game-status {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffdd57;
+    height: 30px;
+}

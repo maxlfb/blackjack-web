@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  blackjack-game:
+    container_name: blackjack_game_container
+    # Construire l'image à partir du Dockerfile dans le dossier courant
+    build: .
+    # Mapper le port 8080 de notre machine au port 3000 du conteneur
+    ports:
+      - "8080:3000"
+    volumes:
+      # Lie le dossier 'server' local au dossier '/app' du conteneur.
+      # Le dossier 'node_modules' est explicitement ignoré pour utiliser
+      # celui qui a été installé DANS le conteneur, ce qui évite les
+      # conflits entre Windows et Linux (Alpine).
+      - ./server:/app
+      - /app/node_modules
+      
+      # Lie le dossier 'client' local au dossier '/app/client' du conteneur
+      # pour que les changements HTML/CSS/JS soient aussi vus par le serveur.
+      - ./client:/app/client
+      
+    # Remplace la commande par défaut du Dockerfile ('npm start' ou 'node server.js')
+    # par notre script de développement.
+    command: npm run dev
