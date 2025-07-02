@@ -1,3 +1,5 @@
+// Fichier : client/client.js (Copiez et remplacez tout le contenu)
+
 const socket = io();
 
 // Zones de l'interface
@@ -15,7 +17,6 @@ const restartBtn = document.getElementById('restart-btn');
 // Affichages
 const roomCodeDisplay = document.getElementById('room-code-display');
 const myHandDiv = document.getElementById('my-hand');
-const myScoreSpan = document.getElementById('my-score');
 const playersAreaDiv = document.getElementById('players-area');
 const gameStatusP = document.getElementById('game-status');
 
@@ -62,29 +63,23 @@ restartBtn.addEventListener('click', () => {
 socket.on('gameState', (room) => {
     console.log("Mise à jour de l'état du jeu:", room);
 
-    // Mettre à jour la main du croupier
     if (room.dealer) {
-        // Pour une vraie partie, on cacherait une carte. Pour l'instant, on affiche tout.
         renderHand(dealerHandDiv, room.dealer.hand);
         dealerScoreSpan.textContent = room.dealer.score;
     }
     
-    // Trouver le joueur actuel (moi)
     const me = room.players.find(p => p.id === socket.id);
     if (!me) return;
 
-    // Mettre à jour ma main et mon score
-    myScoreSpan.textContent = me.score;
     renderHand(myHandDiv, me.hand);
 
-    // Mettre à jour les autres joueurs
-    playersAreaDiv.innerHTML = ''; // Vider la zone
+    playersAreaDiv.innerHTML = '';
     room.players
         .filter(p => p.id !== socket.id)
         .forEach(player => {
             const playerDiv = document.createElement('div');
             playerDiv.classList.add('player-hand-area');
-            playerDiv.innerHTML = `<h3>Joueur (${player.username}) - Score: ${player.score}</h3>`;
+            playerDiv.innerHTML = `<h3>${player.username} - Score: ${player.score}</h3>`;
             const handDiv = document.createElement('div');
             handDiv.classList.add('hand');
             renderHand(handDiv, player.hand);
@@ -92,35 +87,45 @@ socket.on('gameState', (room) => {
             playersAreaDiv.appendChild(playerDiv);
         });
       
-    // Affichage de son propre nom
     const myAreaHeader = document.querySelector('#my-area h3');
     if(myAreaHeader) {
         myAreaHeader.innerHTML = `${me.username} (vous) - Score: <span id="my-score">${me.score}</span>`;
+        document.getElementById('my-score').textContent = me.score;
     }
 
-    // Mettre à jour l'état du jeu et des boutons
+    // --- LOGIQUE D'AFFICHAGE MISE À JOUR ---
     hitBtn.disabled = true;
     standBtn.disabled = true;
     restartBtn.classList.add('hidden');
 
-    if (room.gameState === 'players_turn' && me.status === 'playing') {
-        gameStatusP.textContent = "C'est votre tour.";
-        hitBtn.disabled = false;
-        standBtn.disabled = false;
+    // On gère les états prioritaires d'abord
+    if (me.status === 'blackjack') {
+        gameStatusP.textContent = "BLACKJACK !";
     } else if (me.status === 'bust') {
         gameStatusP.textContent = "Dépassé ! Vous avez perdu.";
     } else if (me.status === 'stand') {
         gameStatusP.textContent = "Vous restez. En attente...";
     }
 
-    if (room.gameState === 'dealer_turn') {
+    // Ensuite, on gère les états de la partie
+    if (room.gameState === 'players_turn' && me.status === 'playing') {
+        gameStatusP.textContent = "C'est votre tour.";
+        hitBtn.disabled = false;
+        standBtn.disabled = false;
+    } else if (room.gameState === 'dealer_turn') {
         gameStatusP.textContent = "Tour du croupier...";
     } else if (room.gameState === 'finished') {
-        // On affiche le bouton Relancer
         restartBtn.classList.remove('hidden');
 
-        // Logique de victoire/défaite
-        if (me.status === 'bust') {
+        // Logique de victoire/défaite pour la fin de partie
+        if (me.status === 'blackjack') {
+             // Un blackjack gagne contre tout sauf un autre blackjack (égalité)
+            if (room.dealer.score === 21 && room.dealer.hand.length === 2) {
+                gameStatusP.textContent = "Égalité, le croupier a aussi un Blackjack.";
+            } else {
+                gameStatusP.textContent = "BLACKJACK ! Vous avez gagné !";
+            }
+        } else if (me.status === 'bust') {
             gameStatusP.textContent = "Vous avez perdu.";
         } else if (room.dealer.score > 21 || me.score > room.dealer.score) {
             gameStatusP.textContent = "Vous avez gagné !";
@@ -132,17 +137,16 @@ socket.on('gameState', (room) => {
     }
 });
 
-
 // --- FONCTION D'AFFICHAGE ---
 
 function renderHand(handContainer, hand) {
-    handContainer.innerHTML = ''; // Vider la main
+    if(!handContainer) return; // Sécurité
+    handContainer.innerHTML = '';
     hand.forEach(card => {
         const cardDiv = document.createElement('div');
         cardDiv.classList.add('card');
-
         if (card.suit === 'hidden') {
-            cardDiv.classList.add('card-back'); // Classe spéciale pour le dos de la carte
+            cardDiv.classList.add('card-back');
         } else {
             cardDiv.classList.add(`suit-${card.suit}`);
             cardDiv.textContent = card.value;
