@@ -83,8 +83,7 @@ socket.on('gameState', (room) => {
             const handDiv = document.createElement('div');
             handDiv.classList.add('hand');
             renderHand(handDiv, player.hand);
-            playerDiv.appendChild(handDiv);
-            playersAreaDiv.appendChild(playerDiv);
+            playerDiv.appendChild(playerDiv);
         });
       
     const myAreaHeader = document.querySelector('#my-area h3');
@@ -98,7 +97,6 @@ socket.on('gameState', (room) => {
     standBtn.disabled = true;
     restartBtn.classList.add('hidden');
 
-    // On gère les états prioritaires d'abord
     if (me.status === 'blackjack') {
         gameStatusP.textContent = "BLACKJACK !";
     } else if (me.status === 'bust') {
@@ -107,7 +105,6 @@ socket.on('gameState', (room) => {
         gameStatusP.textContent = "Vous restez. En attente...";
     }
 
-    // Ensuite, on gère les états de la partie
     if (room.gameState === 'players_turn' && me.status === 'playing') {
         gameStatusP.textContent = "C'est votre tour.";
         hitBtn.disabled = false;
@@ -117,17 +114,22 @@ socket.on('gameState', (room) => {
     } else if (room.gameState === 'finished') {
         restartBtn.classList.remove('hidden');
 
-        // Logique de victoire/défaite pour la fin de partie
+        // --- SECTION MODIFIÉE : Logique de victoire/défaite améliorée ---
+        const dealerHasBlackjack = room.dealer.score === 21 && room.dealer.hand.length === 2;
+
         if (me.status === 'blackjack') {
-             // Un blackjack gagne contre tout sauf un autre blackjack (égalité)
-            if (room.dealer.score === 21 && room.dealer.hand.length === 2) {
+            if (dealerHasBlackjack) {
                 gameStatusP.textContent = "Égalité, le croupier a aussi un Blackjack.";
             } else {
                 gameStatusP.textContent = "BLACKJACK ! Vous avez gagné !";
             }
+        } else if (dealerHasBlackjack) {
+            gameStatusP.textContent = "Le croupier a un Blackjack, vous avez perdu.";
         } else if (me.status === 'bust') {
             gameStatusP.textContent = "Vous avez perdu.";
-        } else if (room.dealer.score > 21 || me.score > room.dealer.score) {
+        } else if (room.dealer.score > 21) {
+            gameStatusP.textContent = "Le croupier dépasse, vous avez gagné !";
+        } else if (me.score > room.dealer.score) {
             gameStatusP.textContent = "Vous avez gagné !";
         } else if (me.score < room.dealer.score) {
             gameStatusP.textContent = "Le croupier gagne.";
@@ -140,7 +142,7 @@ socket.on('gameState', (room) => {
 // --- FONCTION D'AFFICHAGE ---
 
 function renderHand(handContainer, hand) {
-    if(!handContainer) return; // Sécurité
+    if(!handContainer) return;
     handContainer.innerHTML = '';
     hand.forEach(card => {
         const cardDiv = document.createElement('div');

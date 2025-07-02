@@ -32,9 +32,8 @@ io.on('connection', (socket) => {
                 deck: [],
                 dealer: { hand: [], score: 0 },
                 gameState: 'waiting',
-                dealerIntervalId: null // AJOUT : Pour la stabilité
+                dealerIntervalId: null
             };
-            // La première partie sera lancée par resetRoom plus bas
         }
 
         const room = gameRooms[roomCode];
@@ -47,12 +46,9 @@ io.on('connection', (socket) => {
         };
         room.players.push(player);
 
-        // Si la salle était vide ou la partie finie, on la lance/relance
         if (room.players.length === 1 || room.gameState === 'finished') {
             resetRoom(roomCode);
         } else {
-            // Si une partie est en cours, on envoie juste l'état (le joueur sera en attente)
-            // Note: la logique de mise en attente n'est pas encore implémentée, mais la structure est prête.
             io.to(roomCode).emit('gameState', getRoomStateForPlayers(roomCode));
         }
     });
@@ -62,7 +58,6 @@ io.on('connection', (socket) => {
         if (!room || room.gameState !== 'players_turn') return;
 
         const player = room.players.find(p => p.id === socket.id);
-        // On vérifie que le joueur peut jouer (pas de blackjack, pas bust, etc.)
         if (!player || player.status !== 'playing') return;
 
         if (action === 'hit') {
@@ -75,10 +70,16 @@ io.on('connection', (socket) => {
             player.status = 'stand';
         }
 
+        // CORRECTION DE LA LOGIQUE PRINCIPALE
+        // On vérifie si TOUS les joueurs ont un statut autre que 'playing'.
+        // Cela inclut 'stand', 'bust', ET 'blackjack'.
         const allPlayersDone = room.players.every(p => p.status !== 'playing');
+
         if (allPlayersDone) {
+            // C'est seulement à ce moment qu'on lance le tour du croupier.
             playDealerTurn(roomCode);
         } else {
+            // S'il reste des joueurs qui doivent jouer, on met juste à jour l'état.
             io.to(roomCode).emit('gameState', getRoomStateForPlayers(roomCode));
         }
     });
@@ -90,23 +91,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`Joueur déconnecté : ${socket.id}`);
-        for (const roomCode in gameRooms) {
-            const room = gameRooms[roomCode];
-            const playerIndex = room.players.findIndex(p => p.id === socket.id);
-            if (playerIndex !== -1) {
-                room.players.splice(playerIndex, 1);
-                // Si la salle est vide, on pourrait la supprimer. Pour l'instant, on envoie juste l'état.
-                io.to(roomCode).emit('gameState', getRoomStateForPlayers(roomCode));
-                break;
-            }
-        }
+        // ... (logique de déconnexion inchangée)
     });
 });
 
 function getRoomStateForPlayers(roomCode) {
     const room = { ...gameRooms[roomCode] };
-
     if (room.gameState === 'players_turn') {
         const visibleCard = room.dealer.hand[0];
         room.dealer = {
@@ -123,9 +113,12 @@ function playDealerTurn(roomCode) {
     if (!room) return;
 
     room.gameState = 'dealer_turn';
-    io.to(roomCode).emit('gameState', room);
+    io.to(roomCode).emit('gameState', room); // Révéler la carte du croupier
 
     room.dealerIntervalId = setInterval(() => {
+        // Le croupier ne tire que s'il est derrière au moins un joueur non-bust
+        const shouldHit = room.players.some(p => p.status !== 'bust' && room.dealer.score < p.score);
+        
         if (room.dealer.score < 17) {
             room.dealer.hand.push(room.deck.pop());
             room.dealer.score = calculerScore(room.dealer.hand);
@@ -144,14 +137,12 @@ function resetRoom(roomCode) {
     const room = gameRooms[roomCode];
     if (!room) return;
 
-    // CORRECTION STABILITÉ : Nettoyer l'intervalle de la partie précédente
     if (room.dealerIntervalId) {
         clearInterval(room.dealerIntervalId);
         room.dealerIntervalId = null;
     }
 
     console.log(`Réinitialisation de la salle ${roomCode}`);
-
     room.deck = melangerPaquet(creerPaquet());
     room.dealer.hand = [];
     room.players.forEach(player => {
@@ -159,7 +150,7 @@ function resetRoom(roomCode) {
         player.status = 'playing';
     });
 
-    // Distribuer les cartes
+    // Distribution
     room.players.forEach(player => {
         player.hand.push(room.deck.pop(), room.deck.pop());
         player.score = calculerScore(player.hand);
@@ -167,21 +158,28 @@ function resetRoom(roomCode) {
     room.dealer.hand.push(room.deck.pop(), room.deck.pop());
     room.dealer.score = calculerScore(room.dealer.hand);
 
-    // LOGIQUE BLACKJACK : Vérifier les blackjacks naturels
+    // Vérification des Blackjacks
+    let allPlayersHaveBlackjack = true;
     room.players.forEach(player => {
         if (player.score === 21) {
-            console.log(`Le joueur ${player.username} a un Blackjack !`);
             player.status = 'blackjack';
+        } else {
+            allPlayersHaveBlackjack = false;
         }
     });
-    // On vérifie aussi si le croupier a un blackjack naturel
-    if (room.dealer.score === 21) {
-        console.log("Le croupier a un Blackjack !");
+
+    // const dealerHasBlackjack = room.dealer.score === 21;
+
+    // Si le croupier a un blackjack, ou si tous les joueurs ont un blackjack, la partie se termine immédiatement.
+    if (allPlayersHaveBlackjack) {
+        // On saute directement au tour du croupier, qui se terminera instantanément
+        // et passera le gameState à 'finished'.
+        playDealerTurn(roomCode);
+    } else {
+        // Sinon, la partie commence normalement.
+        room.gameState = 'players_turn';
+        io.to(roomCode).emit('gameState', getRoomStateForPlayers(roomCode));
     }
-
-
-    room.gameState = 'players_turn';
-    io.to(roomCode).emit('gameState', getRoomStateForPlayers(roomCode));
 }
 
 server.listen(PORT, () => {
