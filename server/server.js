@@ -20,9 +20,15 @@ const gameRooms = {};
 io.on('connection', (socket) => {
     console.log(`Un joueur est connecté : ${socket.id}`);
 
-    socket.on('joinRoom', (roomCode) => {
+    socket.on('joinRoom', (data) => {
+        const { roomCode, username } = data;
+
+        if (!roomCode || !username) {
+            return; // Sécurité pour éviter les connexions sans nom/salle
+        }
+
         socket.join(roomCode);
-        console.log(`Le joueur ${socket.id} a rejoint la salle ${roomCode}`);
+        console.log(`Le joueur ${username} (${socket.id}) a rejoint la salle ${roomCode}`);
 
         if (!gameRooms[roomCode]) {
             const deck = melangerPaquet(creerPaquet());
@@ -41,17 +47,21 @@ io.on('connection', (socket) => {
             };
         }
 
+        const room = gameRooms[roomCode];
+
         const player = {
             id: socket.id,
+            username: username,
             hand: [],
             score: 0,
             status: 'playing' // 'playing', 'stand', 'bust'
         };
-        gameRooms[roomCode].players.push(player);
+
+        room.players.push(player);
 
         // Distribuer 2 cartes au nouveau joueur
-        player.hand.push(gameRooms[roomCode].deck.pop());
-        player.hand.push(gameRooms[roomCode].deck.pop());
+        player.hand.push(room.deck.pop());
+        player.hand.push(room.deck.pop());
         player.score = calculerScore(player.hand);
 
         // Envoyer l'état du jeu à tous les joueurs de la salle

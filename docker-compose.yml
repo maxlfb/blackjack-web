@@ -7,7 +7,7 @@ services:
     build: .
     # Mapper le port 8080 de notre machine au port 3000 du conteneur
     ports:
-      - "8080:3000"
+      - "3000:3000"
     volumes:
       # Lie le dossier 'server' local au dossier '/app' du conteneur.
       # Le dossier 'node_modules' est explicitement ignoré pour utiliser

@@ -5,6 +5,7 @@ const loginArea = document.getElementById('login-area');
 const gameArea = document.getElementById('game-area');
 
 // Inputs et boutons
+const usernameInput = document.getElementById('username-input');
 const roomCodeInput = document.getElementById('room-code-input');
 const joinRoomBtn = document.getElementById('join-room-btn');
 const hitBtn = document.getElementById('hit-btn');
@@ -28,13 +29,17 @@ let currentRoomCode = '';
 
 joinRoomBtn.addEventListener('click', () => {
     const roomCode = roomCodeInput.value.trim().toUpperCase();
-    if (roomCode) {
+    const username = usernameInput.value.trim();
+
+    if (roomCode && username) {
         currentRoomCode = roomCode;
-        socket.emit('joinRoom', roomCode);
+        socket.emit('joinRoom', { roomCode, username });
 
         loginArea.classList.add('hidden');
         gameArea.classList.remove('hidden');
         roomCodeDisplay.textContent = roomCode;
+    } else {
+        alert("Veuillez entrer un nom et un code de salle.");
     }
 });
 
@@ -79,14 +84,20 @@ socket.on('gameState', (room) => {
         .forEach(player => {
             const playerDiv = document.createElement('div');
             playerDiv.classList.add('player-hand-area');
-            playerDiv.innerHTML = `<h3>Joueur (${player.id.substring(0, 4)}) - Score: ${player.score}</h3>`;
+            playerDiv.innerHTML = `<h3>Joueur (${player.username}) - Score: ${player.score}</h3>`;
             const handDiv = document.createElement('div');
             handDiv.classList.add('hand');
             renderHand(handDiv, player.hand);
             playerDiv.appendChild(handDiv);
             playersAreaDiv.appendChild(playerDiv);
         });
-        
+      
+    // Affichage de son propre nom
+    const myAreaHeader = document.querySelector('#my-area h3');
+    if(myAreaHeader) {
+        myAreaHeader.innerHTML = `${me.username} (vous) - Score: <span id="my-score">${me.score}</span>`;
+    }
+
     // Mettre à jour l'état du jeu et des boutons
     hitBtn.disabled = true;
     standBtn.disabled = true;
